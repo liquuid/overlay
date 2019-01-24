@@ -34,7 +34,6 @@ RDEPEND="${DEPEND}
 	media-libs/freetype
 	media-libs/harfbuzz
 	media-libs/libpng
-	sys-apps/systemd
 	sys-apps/util-linux
 	sys-devel/gcc
 	sys-libs/glibc

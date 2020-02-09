@@ -5,7 +5,7 @@
 
 EAPI=7
 
-inherit eutils toolchain-funcs versionator
+inherit eutils toolchain-funcs 
 if [[ 9999 == $PV ]]; then
 	inherit git-r3
 else

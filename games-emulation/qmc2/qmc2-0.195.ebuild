@@ -15,7 +15,7 @@ KEYWORDS="x86 amd64"
 IUSE="debug +arcade joystick opengl phonon tools"
 RESTRICT="mirror"
 
-RDEPEND=">=games-emulation/sdlmame-0.164[tools=]"
+RDEPEND=">=games-emulation/sdlmame-0.218[tools=]"
 DEPEND="${RDEPEND}
 	dev-qt/qtcore
 	dev-qt/qtgui[accessibility]

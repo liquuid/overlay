@@ -27,8 +27,10 @@ S="${WORKDIR}"
 
 src_install() {
 	exeinto /opt/${PN}
-	doexe Popcorn-Time libffmpegsumo.so nw.pak package.nw
-
+	insinto /opt/${PN}
+	doexe Popcorn-Time
+	doins -r .
+	fperms +x /opt/${PN}/Popcorn-Time
 	dosym /$(get_libdir)/libudev.so.1 /opt/${PN}/libudev.so.0
 	make_wrapper ${PN} ./Popcorn-Time /opt/${PN} /opt/${PN} /opt/bin
 

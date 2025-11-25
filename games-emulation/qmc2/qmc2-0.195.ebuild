@@ -11,7 +11,7 @@ HOMEPAGE="https://qmc2.batcom-it.net/"
 SRC_URI="https://sourceforge.net/projects/qmc2/files/qmc2/0.195/qmc2-0.195.tar.bz2/download -> ${P}.tar.bz2"
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="x86 amd64"
+KEYWORDS="~x86 ~amd64"
 IUSE="debug +arcade joystick opengl phonon tools"
 RESTRICT="mirror"
 

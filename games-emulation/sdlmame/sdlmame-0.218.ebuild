@@ -1,9 +1,6 @@
-# Copyright 1999-2020 Gentoo Foundation
-# Distributed under the terms of the GNU General Public License v2
-
-EAPI=7
-PYTHON_COMPAT=( python2_7 )
-inherit desktop eutils python-any-r1 toolchain-funcs qmake-utils xdg-utils
+EAPI=8
+PYTHON_COMPAT=( python3_{8..13})
+inherit desktop python-any-r1 toolchain-funcs qmake-utils xdg-utils
 
 MY_PV="${PV/.}"
 
@@ -13,40 +10,35 @@ SRC_URI="https://github.com/mamedev/mame/archive/mame${MY_PV}.tar.gz -> mame-${P
 
 LICENSE="GPL-2+ BSD-2 MIT CC0-1.0"
 SLOT="0"
-KEYWORDS="amd64 ~x86"
-IUSE="alsa +arcade debug desktop +mess opengl openmp tools"
-REQUIRED_USE="|| ( arcade mess )"
+KEYWORDS="amd64"
+IUSE="alsa debug opengl openmp tools" 
 
-# MESS (games-emulation/sdlmess) has been merged into MAME upstream since mame-0.162 (see below)
-#  MAME/MESS build combined (default)	+arcade +mess	(mame)
-#  MAME build only			+arcade -mess	(mamearcade)
-#  MESS build only			-arcade +mess	(mess)
-# games-emulation/sdlmametools is dropped and enabled instead by the 'tools' useflag
-RDEPEND="!games-emulation/sdlmametools
-	!games-emulation/sdlmess
-	dev-db/sqlite:3
-	dev-libs/expat
-	media-libs/fontconfig
-	media-libs/flac
-	media-libs/libsdl2[joystick,opengl?,sound,video,X]
-	media-libs/portaudio
-	media-libs/sdl2-ttf
-	sys-libs/zlib
-	virtual/jpeg:0
-	virtual/opengl
-	alsa? ( media-libs/alsa-lib
-		media-libs/portmidi )
-	debug? ( dev-qt/qtcore:5
-		dev-qt/qtgui:5
-		dev-qt/qtwidgets:5 )
-	x11-libs/libX11
-	x11-libs/libXinerama
-	${PYTHON_DEPS}"
+RDEPEND="dev-db/sqlite:3
+	 dev-libs/expat
+	 media-libs/fontconfig
+	 media-libs/flac
+	 media-libs/libsdl2[joystick,opengl?,sound,video,X]
+	 media-libs/libpulse
+	 media-libs/portaudio
+	 media-libs/sdl2-ttf
+	 sys-libs/zlib
+	 virtual/jpeg:0
+	 virtual/opengl
+	 alsa? ( media-libs/alsa-lib
+		 media-libs/portmidi )
+	 debug? ( dev-qt/qtcore:5
+		  dev-qt/qtgui:5
+		  dev-qt/qtwidgets:5 )
+	 x11-libs/libX11
+	 x11-libs/libXinerama
+	 dev-libs/libutf8proc
+	 media-libs/glm
+	 dev-libs/rapidjson
+	 dev-libs/pugixml"
 DEPEND="${RDEPEND}
 	virtual/pkgconfig
 	x11-base/xorg-proto"
-BDEPEND="${PYTHON_DEPS}"
-S="${WORKDIR}/mame-mame${MY_PV}"
+S=${WORKDIR}/mame-mame${MY_PV}
 
 # Function to disable a makefile option
 disable_feature() {
@@ -62,11 +54,13 @@ pkg_setup() {
 	python-any-r1_pkg_setup
 }
 
-#PATCHES=( ${FILESDIR}"/${P}-qt.patch" )
-
 src_prepare() {
 	default
 	# Disable using bundled libraries
+	enable_feature USE_SYSTEM_LIB_UTF8PROC
+	enable_feature USE_SYSTEM_LIB_GLM
+	enable_feature USE_SYSTEM_LIB_RAPIDJSON
+	enable_feature USE_SYSTEM_LIB_PUGIXML
 	enable_feature USE_SYSTEM_LIB_EXPAT
 	enable_feature USE_SYSTEM_LIB_FLAC
 	enable_feature USE_SYSTEM_LIB_JPEG
@@ -79,6 +73,7 @@ src_prepare() {
 	# Disable warnings being treated as errors and enable verbose build output
 	enable_feature NOWERROR
 	enable_feature VERBOSE
+	enable_feature IGNORE_GIT
 
 	use amd64 && enable_feature PTR64
 	use debug && enable_feature DEBUG
@@ -102,9 +97,6 @@ src_compile() {
 	local targetargs
 	local qtdebug=$(usex debug 1 0)
 
-	use arcade && ! use mess && targetargs="SUBTARGET=arcade"
-	! use arcade && use mess && targetargs="SUBTARGET=mess"
-
 	function my_emake() {
 		# Workaround conflicting $ARCH variable used by both Gentoo's
 		# portage and by Mame's build scripts
@@ -123,41 +115,16 @@ src_compile() {
 	my_emake ${targetargs} \
 		SDL_INI_PATH="\$\$\$\$HOME/.sdlmame;/etc/${PN}" \
 		USE_QTDEBUG=${qtdebug}
-
-	#if use tools ; then
-	#	my_emake -j1 TARGET=ldplayer USE_QTDEBUG=${qtdebug}
-	#fi
 }
 
-src_install() {
-	local MAMEBIN
-	local suffix="$(use amd64 && echo 64)$(use debug && echo d)"
-	local f
-
-	function mess_install() {
-		dosym ${MAMEBIN} "/usr/bin/mess${suffix}"
-		dosym ${MAMEBIN} "/usr/bin/sdlmess"
-		newman docs/man/mess.6 sdlmess.6
-		doman docs/man/mess.6
-	}
-	if use arcade ; then
-		if use mess ; then
-			MAMEBIN="mame${suffix}"
-			mess_install
-		else
-			MAMEBIN="mamearcade${suffix}"
-		fi
-		doman docs/man/mame.6
-		newman docs/man/mame.6 ${PN}.6
-	elif use mess ; then
-		MAMEBIN="mess${suffix}"
-		mess_install
-	fi
-	dobin ${MAMEBIN}
-	dosym ${MAMEBIN} "/usr/bin/${PN}"
+src_install()
+{
+	MAMEBIN=mame
+	dobin $MAMEBIN
+	doman docs/man/mame.6
 
 	insinto "/usr/share/${PN}"
-	doins -r keymaps $(use mess && echo hash)
+	doins -r keymaps hash
 
 	# Create default mame.ini and inject Gentoo settings into it
 	#  Note that '~' does not work and '$HOME' must be used
@@ -207,16 +174,6 @@ src_install() {
 		#newbin ldplayer${suffix} ${PN}-ldplayer
 		#newman docs/man/ldplayer.1 ${PN}-ldplayer.1
 	fi
-	if use desktop; then
-		local mydesktopfields=(
-			"sdlmame"
-			"MAME"
-			"mame"
-			"Application;Game;Emulation"
-		)
-		make_desktop_entry ${mydesktopfields[@]}
-		doicon "${FILESDIR}/mame.png"
-	fi
 }
 
 pkg_postinst() {
@@ -236,3 +193,4 @@ pkg_postinst() {
 pkg_postrm(){
 	xdg_desktop_database_update
 }
+
